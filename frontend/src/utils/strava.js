@@ -1,12 +1,12 @@
 import axios from 'axios'
 
-const BACKEND_URL = 'http://localhost:3001'
+const BACKEND_URL = 'https://trace-backend-iota.vercel.app'
 const STRAVA_API = 'https://www.strava.com/api/v3'
 
 export const getStravaAuthURL = () => {
   const params = new URLSearchParams({
     client_id: import.meta.env.VITE_STRAVA_CLIENT_ID,
-    redirect_uri: 'http://localhost:5173/callback',
+    redirect_uri: 'https://trace-frontend-six.vercel.app/callback',
     response_type: 'code',
     scope: 'activity:read_all',
   })
