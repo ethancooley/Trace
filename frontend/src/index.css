@@ -1,0 +1,23 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0d0f0e;
+  --surface: #131615;
+  --surface2: #1a1d1b;
+  --border: #242824;
+  --accent: #2E7DA3;
+  --accent2: #4A8FA8;
+  --muted: #4a5258;
+  --text: #e8eced;
+  --text-secondary: #8a9aa3;
+  --tag-bg: #0f1e28;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
