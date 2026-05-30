@@ -38,7 +38,7 @@ Trace connects to your Strava account and renders every activity as a clean GPS 
 1. Clone the repo
 
 ```bash
-git clone https://github.com/yourusername/trace.git
+git clone https://github.com/ethancooley/trace.git
 cd trace
 ```
 
