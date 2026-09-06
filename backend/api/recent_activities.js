@@ -21,6 +21,7 @@ async function getAccessToken() {
 
 function metersToMiles(m) { return m / 1609.344; }
 function metersToFeet(m) { return m * 3.28084; }
+function metersToYards(m) { return m * 1.09361; }
 
 function formatPace(activity) {
   const type = activity.type || activity.sport_type || '';
@@ -42,10 +43,11 @@ function formatPace(activity) {
   }
 
   if (type === 'Swim' && activity.distance) {
-    const paceSecPer100 = movingTime / (activity.distance / 100);
+    const distanceYd = metersToYards(activity.distance);
+    const paceSecPer100 = movingTime / (distanceYd / 100);
     const min = Math.floor(paceSecPer100 / 60);
     const sec = Math.round(paceSecPer100 % 60);
-    return `${min}:${sec.toString().padStart(2, '0')} /100m`;
+    return `${min}:${sec.toString().padStart(2, '0')} /100yd`;
   }
 
   return speedMph > 0 ? `${speedMph.toFixed(1)} mph avg` : '';
