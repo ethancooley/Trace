@@ -3,7 +3,7 @@ const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET;
 const STRAVA_REFRESH_TOKEN = process.env.STRAVA_REFRESH_TOKEN;
 
 const TOKEN_ENDPOINT = 'https://www.strava.com/oauth/token';
-const ACTIVITIES_ENDPOINT = 'https://www.strava.com/api/v3/athlete/activities?per_page=5';
+const ACTIVITIES_ENDPOINT = 'https://www.strava.com/api/v3/athlete/activities?per_page=10';
 
 async function getAccessToken() {
   const response = await fetch(TOKEN_ENDPOINT, {
@@ -58,7 +58,7 @@ module.exports = async (req, res) => {
   try {
     const tokenData = await getAccessToken();
     if (!tokenData.access_token) {
-      return res.status(200).json({ activities: [] });
+      return res.status(200).json({ activities: [], latestRoute: null });
     }
 
     const actRes = await fetch(ACTIVITIES_ENDPOINT, {
@@ -66,12 +66,12 @@ module.exports = async (req, res) => {
     });
 
     if (!actRes.ok) {
-      return res.status(200).json({ activities: [] });
+      return res.status(200).json({ activities: [], latestRoute: null });
     }
 
     const raw = await actRes.json();
     if (!Array.isArray(raw)) {
-      return res.status(200).json({ activities: [] });
+      return res.status(200).json({ activities: [], latestRoute: null });
     }
 
     const activities = raw.slice(0, 5).map((a) => ({
@@ -85,8 +85,22 @@ module.exports = async (req, res) => {
       pace: formatPace(a),
     }));
 
-    return res.status(200).json({ activities });
+    // Find the most recent activity (within the last 10 pulled) that
+    // actually has a GPS route attached — skips weight training, etc.
+    const routeSource = raw.find((a) => a.map && a.map.summary_polyline);
+    const latestRoute = routeSource
+      ? {
+          id: routeSource.id,
+          name: routeSource.name,
+          type: routeSource.type || routeSource.sport_type || 'Activity',
+          date: routeSource.start_date_local,
+          distanceMiles: Math.round(metersToMiles(routeSource.distance || 0) * 10) / 10,
+          polyline: routeSource.map.summary_polyline,
+        }
+      : null;
+
+    return res.status(200).json({ activities, latestRoute });
   } catch (err) {
-    return res.status(200).json({ activities: [] });
+    return res.status(200).json({ activities: [], latestRoute: null });
   }
 };
