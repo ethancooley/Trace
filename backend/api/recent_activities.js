@@ -76,16 +76,20 @@ module.exports = async (req, res) => {
       return res.status(200).json({ activities: [], latestRoute: null });
     }
 
-    const activities = raw.slice(0, 5).map((a) => ({
-      id: a.id,
-      name: a.name,
-      type: a.type || a.sport_type || 'Activity',
-      distanceMiles: Math.round(metersToMiles(a.distance || 0) * 10) / 10,
-      movingTimeMin: Math.round((a.moving_time || 0) / 60),
-      elevationFt: Math.round(metersToFeet(a.total_elevation_gain || 0)),
-      date: a.start_date_local,
-      pace: formatPace(a),
-    }));
+    const activities = raw.slice(0, 5).map((a) => {
+      const type = a.type || a.sport_type || 'Activity';
+      return {
+        id: a.id,
+        name: a.name,
+        type,
+        distanceMiles: Math.round(metersToMiles(a.distance || 0) * 10) / 10,
+        distanceYards: type === 'Swim' ? Math.round(metersToYards(a.distance || 0)) : null,
+        movingTimeMin: Math.round((a.moving_time || 0) / 60),
+        elevationFt: Math.round(metersToFeet(a.total_elevation_gain || 0)),
+        date: a.start_date_local,
+        pace: formatPace(a),
+      };
+    });
 
     // Find the most recent activity (within the last 10 pulled) that
     // actually has a GPS route attached — skips weight training, etc.
