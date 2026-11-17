@@ -53,6 +53,24 @@ function formatPace(activity) {
   return speedMph > 0 ? `${speedMph.toFixed(1)} mph avg` : '';
 }
 
+// Fetch photos for one activity. Strava only exposes still images
+// (no video) through the API. Placeholder/default images are skipped.
+async function getPhotos(activityId, accessToken) {
+  const url = `https://www.strava.com/api/v3/activities/${activityId}/photos?photo_sources=true&size=1600`;
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!r.ok) return [];
+  const data = await r.json();
+  if (!Array.isArray(data)) return [];
+  return data
+    .filter((p) => p && !p.default_photo && p.urls)
+    .map((p) => {
+      const sizes = Object.keys(p.urls).map(Number).filter(Boolean).sort((a, b) => b - a);
+      const best = p.urls[String(sizes[0])] || Object.values(p.urls)[0];
+      return { url: best, caption: p.caption || '' };
+    })
+    .filter((p) => typeof p.url === 'string' && p.url.startsWith('https://'));
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=300');
@@ -105,7 +123,32 @@ module.exports = async (req, res) => {
         }
       : null;
 
-    return res.status(200).json({ activities, latestRoute });
+    // Photos: look at the 10 most recent activities, fetch photos for the
+// first few that have any (keeps Strava API usage bounded), cap the total.
+let photos = [];
+try {
+  const withPhotos = raw.filter((a) => (a.total_photo_count || 0) > 0).slice(0, 4);
+  const results = await Promise.allSettled(withPhotos.map((a) => getPhotos(a.id, tokenData.access_token)));
+  results.forEach((r, i) => {
+    if (r.status !== 'fulfilled') return;
+    const a = withPhotos[i];
+    r.value.forEach((p) => photos.push({
+      url: p.url,
+      caption: p.caption,
+      activityId: a.id,
+      activityName: a.name,
+      type: a.type || a.sport_type || 'Activity',
+      date: a.start_date_local,
+    }));
+  });
+  photos = photos.slice(0, 9);
+} catch (e) { photos = []; }
+
+const photoCounts = {};
+photos.forEach((p) => { photoCounts[p.activityId] = (photoCounts[p.activityId] || 0) + 1; });
+activities.forEach((a) => { a.photoCount = photoCounts[a.id] || 0; });
+
+return res.status(200).json({ activities, latestRoute, photos });
   } catch (err) {
     return res.status(200).json({ activities: [], latestRoute: null });
   }
